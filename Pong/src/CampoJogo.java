@@ -17,12 +17,18 @@ public class CampoJogo extends JPanel {
     private static final int MARGEM_RAQUETE = 30;
     private static final int VELOCIDADE_RAQUETE = 6;
 
+    //Dimenções constantes da Bola
+    private static final int DIAMETRO_BOLA = 20;
+    private static final int VELOCIDADE_BOLA_X = 4;
+    private static final int VELOCIDADE_BOLA_Y = 3;
+
     //Intervalo do ciclo do jogo, em milissegundos (-60 atualizações por segundo)
     private static final int INTERVALO_MS = 16;
 
-    //Controla as raquetes
+    //Controla as raquetes e a bola
     private final Raquete raqueteJogador;
     private final Raquete raqueteComputador;
+    private final Bola bola;
 
     private boolean subindo = false;
     private boolean descendo = false;
@@ -45,6 +51,11 @@ public class CampoJogo extends JPanel {
         raqueteComputador = new Raquete(
                 LARGURA - MARGEM_RAQUETE - LARGURA_RAQUETE, yCentralizado,
                 LARGURA_RAQUETE,ALTURA_RAQUETE, VELOCIDADE_RAQUETE, ALTURA
+        );
+
+        bola = new Bola(
+                (LARGURA - DIAMETRO_BOLA) / 2, (ALTURA - DIAMETRO_BOLA) / 2,
+                DIAMETRO_BOLA, VELOCIDADE_BOLA_X, VELOCIDADE_BOLA_Y
         );
 
         configurarTeclado();
@@ -126,6 +137,7 @@ public class CampoJogo extends JPanel {
 
         raqueteJogador.desenhar(g);
         raqueteComputador.desenhar(g);
+        bola.desenhar(g);
     }
 
 
