@@ -1,72 +1,89 @@
-import javax.swing.*;
-import java.awt.*;
+import java.awt.Color;
+import java.awt.Dimension;
+import java.awt.Font;
+import java.awt.FontMetrics;
+import java.awt.Graphics;
+import java.awt.Rectangle;
 import java.awt.event.ActionEvent;
 import java.awt.event.FocusAdapter;
 import java.awt.event.FocusEvent;
 import java.awt.event.KeyEvent;
+import javax.swing.AbstractAction;
+import javax.swing.ActionMap;
+import javax.swing.InputMap;
+import javax.swing.JComponent;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.KeyStroke;
+import javax.swing.Timer;
 import java.util.Random;
 
+/**
+ * Campo de jogo. Herda de JPanel ("é um" painel) e mantém a bola e as raquetes
+ * ("tem" uma bola e duas raquetes): herança + composição.
+ */
 public class CampoJogo extends JPanel {
 
-    //Dimenção constantes da Janela
     public static final int LARGURA = 800;
     public static final int ALTURA = 600;
 
-    //Dimenções constantes da Raquete
     private static final int LARGURA_RAQUETE = 15;
     private static final int ALTURA_RAQUETE = 100;
     private static final int MARGEM_RAQUETE = 30;
     private static final int VELOCIDADE_RAQUETE = 6;
 
-    //Dimenções constantes da Bola
+    // Constantes da bola (velocidades baixas, para evitar atravessar raquetes depois)
     private static final int DIAMETRO_BOLA = 20;
     private static final int VELOCIDADE_BOLA_X = 4;
     private static final int VELOCIDADE_BOLA_Y = 3;
 
-    //Intervalo do ciclo do jogo, em milissegundos (-60 atualizações por segundo)
     private static final int INTERVALO_MS = 16;
 
-    //Controla as raquetes e a bola
+    // Pontos necessários para vencer a partida
+    private static final int META_PONTOS = 10;
+
     private final Raquete raqueteJogador;
     private final Raquete raqueteComputador;
     private final Bola bola;
     private final Placar placar = new Placar();
     private final ControleComputador controleComputador;
 
-    //Usado para sortear a direção vertical do saque
+    // Usado só para sortear a direção vertical do saque
     private final Random sorteio = new Random();
 
-    private static final Font FONTE_PLACAR = new Font("Monospaced", Font.BOLD,48);
+    private static final Font FONTE_PLACAR = new Font("Monospaced", Font.BOLD, 48);
+
+    // Estado da partida: false depois que alguém vence, até começar outra
+    private boolean partidaEmAndamento = true;
 
     private boolean subindo = false;
     private boolean descendo = false;
 
     private final Timer timer;
 
-    public CampoJogo(Dificuldade dificuldade){
-        setPreferredSize(new Dimension(LARGURA,ALTURA)); //configura dimenção da janela
-        setBackground(Color.BLACK); //muda a cor do background
+    public CampoJogo(Dificuldade dificuldade) {
+        setPreferredSize(new Dimension(LARGURA, ALTURA));
+        setBackground(Color.BLACK);
 
         int yCentralizado = (ALTURA - ALTURA_RAQUETE) / 2;
 
-        //Esquerda
         raqueteJogador = new Raquete(
-                MARGEM_RAQUETE,yCentralizado,
-                LARGURA_RAQUETE, ALTURA_RAQUETE,VELOCIDADE_RAQUETE,ALTURA
-        );
+                MARGEM_RAQUETE, yCentralizado,
+                LARGURA_RAQUETE, ALTURA_RAQUETE, VELOCIDADE_RAQUETE, ALTURA);
 
-        //Direita
+        // A dificuldade define a velocidade da raquete do computador
         raqueteComputador = new Raquete(
                 LARGURA - MARGEM_RAQUETE - LARGURA_RAQUETE, yCentralizado,
-                LARGURA_RAQUETE,ALTURA_RAQUETE, dificuldade.getVelocidadeComputador(), ALTURA
-        );
+                LARGURA_RAQUETE, ALTURA_RAQUETE,
+                dificuldade.getVelocidadeComputador(), ALTURA);
 
+        // ...e a tolerância de alinhamento
         controleComputador = new ControleComputador(dificuldade.getTolerancia());
 
+        // x e y são o canto superior esquerdo, então o centro exige descontar o diâmetro
         bola = new Bola(
                 (LARGURA - DIAMETRO_BOLA) / 2, (ALTURA - DIAMETRO_BOLA) / 2,
-                DIAMETRO_BOLA, VELOCIDADE_BOLA_X, VELOCIDADE_BOLA_Y
-        );
+                DIAMETRO_BOLA, VELOCIDADE_BOLA_X, VELOCIDADE_BOLA_Y);
 
         configurarTeclado();
         configurarPerdaDeFoco();
@@ -74,6 +91,8 @@ public class CampoJogo extends JPanel {
         timer = new Timer(INTERVALO_MS, e -> atualizarJogo());
         timer.start();
     }
+
+    // ---------- Teclado ----------
 
     private void configurarTeclado() {
         associarTecla(KeyEvent.VK_W, "subir", () -> subindo = true, () -> subindo = false);
@@ -119,7 +138,13 @@ public class CampoJogo extends JPanel {
         descendo = false;
     }
 
+    // ---------- Ciclo do jogo ----------
+
     private void atualizarJogo() {
+        if (!partidaEmAndamento) {
+            return; // partida encerrada: nada avança
+        }
+
         // 1) Comandos do jogador -> raquete
         if (subindo && !descendo) {
             raqueteJogador.moverParaCima();
@@ -127,19 +152,75 @@ public class CampoJogo extends JPanel {
             raqueteJogador.moverParaBaixo();
         }
 
-        // 2) Bola
+        // 2) Computador
+        controleComputador.atualizar(raqueteComputador, bola);
+
+        // 3) Bola
         bola.mover();
 
-        // 3) Colisões (sempre DEPOIS de mover)
+        // 4) Colisões (sempre DEPOIS de mover)
         tratarLimitesVerticais();
         tratarColisoesComRaquetes();
         tratarPontuacao();
 
-        // 4) Pede o redesenho (o desenho em si acontece em paintComponent)
+        // 5) Pede o redesenho (o desenho em si acontece em paintComponent)
         repaint();
+
+        // 6) Por último: alguém atingiu a meta?
+        verificarVitoria();
     }
 
-    //corrige a posição e inverte a direção vertical.
+    /** Encerra a partida se algum lado atingiu a meta. */
+    private void verificarVitoria() {
+        if (placar.jogadorVenceu(META_PONTOS)) {
+            encerrarPartida("Você venceu!");
+        } else if (placar.computadorVenceu(META_PONTOS)) {
+            encerrarPartida("O computador venceu!");
+        }
+    }
+
+    /**
+     * Para a partida UMA vez, mostra o vencedor e pergunta o que fazer.
+     * O timer é parado ANTES do diálogo modal.
+     */
+    private void encerrarPartida(String mensagemVencedor) {
+        partidaEmAndamento = false;
+        timer.stop();
+        paintImmediately(0, 0, LARGURA, ALTURA); // mostra o placar final atrás do diálogo
+
+        String[] opcoes = {"Nova partida", "Sair"};
+        int escolha = JOptionPane.showOptionDialog(
+                this,
+                mensagemVencedor + "\nPlacar final: "
+                        + placar.getPontosJogador() + " x " + placar.getPontosComputador(),
+                "Fim de partida",
+                JOptionPane.DEFAULT_OPTION,
+                JOptionPane.INFORMATION_MESSAGE,
+                null,
+                opcoes,
+                opcoes[0]);
+
+        if (escolha == 0) {
+            iniciarNovaPartida();
+        } else {
+            System.exit(0);
+        }
+    }
+
+    /** Restaura tudo e REINICIA o mesmo timer (nunca cria outro). */
+    private void iniciarNovaPartida() {
+        placar.zerar();
+        raqueteJogador.reiniciar();
+        raqueteComputador.reiniciar();
+        reiniciarBola(sorteio.nextBoolean());
+        limparComandos();
+
+        partidaEmAndamento = true;
+        requestFocusInWindow();
+        timer.start();
+    }
+
+    /** Teto e chão: corrige a posição e inverte a direção vertical. */
     private void tratarLimitesVerticais() {
         if (bola.getY() <= 0) {
             bola.rebaterNoTeto();
@@ -148,7 +229,10 @@ public class CampoJogo extends JPanel {
         }
     }
 
-    //só rebate se houver interseção E a bola estiver se APROXIMANDO (velocidadeX negativa na esquerda, positiva na direita).
+    /**
+     * Raquetes: só rebate se houver interseção E a bola estiver se APROXIMANDO
+     * (velocidadeX negativa na esquerda, positiva na direita).
+     */
     private void tratarColisoesComRaquetes() {
         Rectangle areaBola = bola.getRetangulo();
 
@@ -161,8 +245,10 @@ public class CampoJogo extends JPanel {
         }
     }
 
-
-    // Ponto: a bola saiu COMPLETAMENTE por uma lateral.Como a bola volta ao centro na hora, o mesmo evento não pontua duas vezes.
+    /**
+     * Ponto: a bola saiu COMPLETAMENTE por uma lateral.
+     * Como a bola volta ao centro na hora, o mesmo evento não pontua duas vezes.
+     */
     private void tratarPontuacao() {
         if (bola.getX() + bola.getDiametro() <= 0) {
             // Saiu pela esquerda: ponto do computador
@@ -175,10 +261,12 @@ public class CampoJogo extends JPanel {
         }
     }
 
-    // Novo saque: horizontal em direção a quem perdeu o ponto; vertical sorteada.
+    /** Novo saque: horizontal em direção a quem perdeu o ponto; vertical sorteada. */
     private void reiniciarBola(boolean paraDireita) {
         bola.reiniciar(paraDireita, sorteio.nextBoolean());
     }
+
+    // ---------- Desenho ----------
 
     @Override
     protected void paintComponent(Graphics g) {
@@ -193,9 +281,11 @@ public class CampoJogo extends JPanel {
         raqueteJogador.desenhar(g);
         raqueteComputador.desenhar(g);
         bola.desenhar(g);
+
+        desenharPlacar(g);
     }
 
-    // Escreve cada pontuação centralizada na sua metade, no alto do campo.
+    /** Escreve cada pontuação centralizada na sua metade, no alto do campo. */
     private void desenharPlacar(Graphics g) {
         g.setColor(Color.WHITE);
         g.setFont(FONTE_PLACAR);

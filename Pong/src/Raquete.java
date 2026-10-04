@@ -6,6 +6,8 @@ public class Raquete {
     private int x;
     private int y;
 
+    private final int yInicial;
+
     //Dimenção da raquete
     private final int largura;
     private final int altura;
@@ -18,6 +20,7 @@ public class Raquete {
     public Raquete(int x, int y, int largura, int altura, int velocidade, int alturaCampo) {
         this.x = x;
         this.y = y;
+        this.yInicial = y;
         this.largura = largura;
         this.altura = altura;
         this.velocidade = velocidade;
@@ -51,6 +54,10 @@ public class Raquete {
 
     public void moverParaBaixo() {
         y = Math.min(alturaCampo - altura, y + velocidade);
+    }
+
+    public void reiniciar(){
+        y = yInicial;
     }
 
     public void desenhar(Graphics g){
