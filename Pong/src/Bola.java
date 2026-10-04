@@ -13,12 +13,23 @@ public class Bola {
     private int velocidadeX;
     private int velocidadeY;
 
+    //Estado de saque;
+    private final int xInicial;
+    private final int yInicial;
+    private final int velocidadeBaseX;
+    private final int velocidadeBaseY;
+
     public Bola(int x, int y, int diametro, int velocidadeX, int velocidadeY) {
         this.x = x;
         this.y = y;
         this.diametro = diametro;
         this.velocidadeX = velocidadeX;
         this.velocidadeY = velocidadeY;
+
+        this.xInicial = x;
+        this.yInicial = y;
+        this.velocidadeBaseX = Math.abs(velocidadeX);
+        this.velocidadeBaseY = Math.abs(velocidadeY);
     }
 
     public int getX() {
@@ -69,6 +80,15 @@ public class Bola {
     public void rebaterParaEsquerda(int novoX) {
         x = novoX;
         velocidadeX = -Math.abs(velocidadeX);
+    }
+
+    //Prepara um novo saque
+    public void reiniciar(boolean paraDireita,boolean paraBaixo) {
+        x = xInicial;
+        y = yInicial;
+
+        velocidadeX = paraDireita ? velocidadeBaseX : -velocidadeBaseX;
+        velocidadeY = paraBaixo ? velocidadeBaseY : -velocidadeBaseY;
     }
 
     //Desenha a bola

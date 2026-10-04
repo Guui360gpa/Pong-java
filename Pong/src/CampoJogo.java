@@ -4,6 +4,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.FocusAdapter;
 import java.awt.event.FocusEvent;
 import java.awt.event.KeyEvent;
+import java.util.Random;
 
 public class CampoJogo extends JPanel {
 
@@ -29,6 +30,12 @@ public class CampoJogo extends JPanel {
     private final Raquete raqueteJogador;
     private final Raquete raqueteComputador;
     private final Bola bola;
+    private final Placar placar = new Placar();
+
+    //Usado para sortear a direção vertical do saque
+    private final Random sorteio = new Random();
+
+    private static final Font FONTE_PLACAR = new Font("Monospaced", Font.BOLD,48);
 
     private boolean subindo = false;
     private boolean descendo = false;
@@ -123,6 +130,7 @@ public class CampoJogo extends JPanel {
         // 3) Colisões (sempre DEPOIS de mover)
         tratarLimitesVerticais();
         tratarColisoesComRaquetes();
+        tratarPontuacao();
 
         // 4) Pede o redesenho (o desenho em si acontece em paintComponent)
         repaint();
@@ -150,6 +158,25 @@ public class CampoJogo extends JPanel {
         }
     }
 
+
+    // Ponto: a bola saiu COMPLETAMENTE por uma lateral.Como a bola volta ao centro na hora, o mesmo evento não pontua duas vezes.
+    private void tratarPontuacao() {
+        if (bola.getX() + bola.getDiametro() <= 0) {
+            // Saiu pela esquerda: ponto do computador
+            placar.marcarPontoComputador();
+            reiniciarBola(false);
+        } else if (bola.getX() >= LARGURA) {
+            // Saiu pela direita: ponto do jogador
+            placar.marcarPontoJogador();
+            reiniciarBola(true);
+        }
+    }
+
+    // Novo saque: horizontal em direção a quem perdeu o ponto; vertical sorteada.
+    private void reiniciarBola(boolean paraDireita) {
+        bola.reiniciar(paraDireita, sorteio.nextBoolean());
+    }
+
     @Override
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
@@ -165,5 +192,19 @@ public class CampoJogo extends JPanel {
         bola.desenhar(g);
     }
 
+    // Escreve cada pontuação centralizada na sua metade, no alto do campo.
+    private void desenharPlacar(Graphics g) {
+        g.setColor(Color.WHITE);
+        g.setFont(FONTE_PLACAR);
+        FontMetrics medidas = g.getFontMetrics();
 
+        String textoJogador = String.valueOf(placar.getPontosJogador());
+        String textoComputador = String.valueOf(placar.getPontosComputador());
+
+        int xJogador = LARGURA / 4 - medidas.stringWidth(textoJogador) / 2;
+        int xComputador = 3 * LARGURA / 4 - medidas.stringWidth(textoComputador) / 2;
+
+        g.drawString(textoJogador, xJogador, 60);
+        g.drawString(textoComputador, xComputador, 60);
+    }
 }
