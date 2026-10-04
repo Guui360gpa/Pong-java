@@ -66,16 +66,13 @@ public class CampoJogo extends JPanel {
     }
 
     private void configurarTeclado() {
-        // Subir: W ou seta para cima
         associarTecla(KeyEvent.VK_W, "subir", () -> subindo = true, () -> subindo = false);
         associarTecla(KeyEvent.VK_UP, "subirSeta", () -> subindo = true, () -> subindo = false);
 
-        // Descer: S ou seta para baixo
         associarTecla(KeyEvent.VK_S, "descer", () -> descendo = true, () -> descendo = false);
         associarTecla(KeyEvent.VK_DOWN, "descerSeta", () -> descendo = true, () -> descendo = false);
     }
 
-    //Liga uma tecla a duas ações: uma ao pressionar e outra ao soltar.
     private void associarTecla(int tecla, String nome, Runnable aoPressionar, Runnable aoSoltar) {
         InputMap inputMap = getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW);
         ActionMap actionMap = getActionMap();
@@ -97,7 +94,6 @@ public class CampoJogo extends JPanel {
         });
     }
 
-    //Se a janela perder o foco, solta todos os comandos (evita raquete "presa").
     private void configurarPerdaDeFoco() {
         setFocusable(true);
         addFocusListener(new FocusAdapter() {
@@ -114,25 +110,54 @@ public class CampoJogo extends JPanel {
     }
 
     private void atualizarJogo() {
-        // Se as duas teclas estiverem pressionadas, os comandos se anulam.
+        // 1) Comandos do jogador -> raquete
         if (subindo && !descendo) {
             raqueteJogador.moverParaCima();
         } else if (descendo && !subindo) {
             raqueteJogador.moverParaBaixo();
         }
 
+        // 2) Bola
+        bola.mover();
+
+        // 3) Colisões (sempre DEPOIS de mover)
+        tratarLimitesVerticais();
+        tratarColisoesComRaquetes();
+
+        // 4) Pede o redesenho (o desenho em si acontece em paintComponent)
         repaint();
+    }
+
+    //corrige a posição e inverte a direção vertical.
+    private void tratarLimitesVerticais() {
+        if (bola.getY() <= 0) {
+            bola.rebaterNoTeto();
+        } else if (bola.getY() + bola.getDiametro() >= ALTURA) {
+            bola.rebaterNoChao(ALTURA);
+        }
+    }
+
+    //só rebate se houver interseção E a bola estiver se APROXIMANDO (velocidadeX negativa na esquerda, positiva na direita).
+    private void tratarColisoesComRaquetes() {
+        Rectangle areaBola = bola.getRetangulo();
+
+        if (bola.getVelocidadeX() < 0 && areaBola.intersects(raqueteJogador.getRetangulo())) {
+            // Reposiciona a bola logo à direita da raquete
+            bola.rebaterParaDireita(raqueteJogador.getX() + raqueteJogador.getLargura());
+        } else if (bola.getVelocidadeX() > 0 && areaBola.intersects(raqueteComputador.getRetangulo())) {
+            // Reposiciona a bola logo à esquerda da raquete
+            bola.rebaterParaEsquerda(raqueteComputador.getX() - bola.getDiametro());
+        }
     }
 
     @Override
     protected void paintComponent(Graphics g) {
-        //Desenha o tracejado branco do meio (LARGURA / 2)
         super.paintComponent(g);
+
         g.setColor(Color.WHITE);
         int x = LARGURA / 2;
-
-        for (int y = 0; y < ALTURA; y+=30) {
-            g.drawLine(x,y,x,y+15);
+        for (int y = 0; y < ALTURA; y += 30) {
+            g.drawLine(x, y, x, y + 15);
         }
 
         raqueteJogador.desenhar(g);

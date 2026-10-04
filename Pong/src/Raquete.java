@@ -24,14 +24,6 @@ public class Raquete {
         this.alturaCampo = alturaCampo;
     }
 
-    public void moverParaCima() {
-        y = Math.max(0,y - velocidade);
-    }
-
-    public void moverParaBaixo() {
-        y = Math.min(alturaCampo - altura, y + velocidade);
-    }
-
     public int getX() {
         return x;
     }
@@ -46,6 +38,19 @@ public class Raquete {
     }
     public int getVelocidade() {
         return velocidade;
+    }
+
+    //Região retangular ocupada pela raquete
+    public Rectangle getRetangulo() {
+        return new Rectangle(x,y,largura,altura);
+    }
+
+    public void moverParaCima() {
+        y = Math.max(0,y - velocidade);
+    }
+
+    public void moverParaBaixo() {
+        y = Math.min(alturaCampo - altura, y + velocidade);
     }
 
     public void desenhar(Graphics g){
