@@ -31,6 +31,7 @@ public class CampoJogo extends JPanel {
     private final Raquete raqueteComputador;
     private final Bola bola;
     private final Placar placar = new Placar();
+    private final ControleComputador controleComputador;
 
     //Usado para sortear a direção vertical do saque
     private final Random sorteio = new Random();
@@ -42,7 +43,7 @@ public class CampoJogo extends JPanel {
 
     private final Timer timer;
 
-    public CampoJogo(){
+    public CampoJogo(Dificuldade dificuldade){
         setPreferredSize(new Dimension(LARGURA,ALTURA)); //configura dimenção da janela
         setBackground(Color.BLACK); //muda a cor do background
 
@@ -57,8 +58,10 @@ public class CampoJogo extends JPanel {
         //Direita
         raqueteComputador = new Raquete(
                 LARGURA - MARGEM_RAQUETE - LARGURA_RAQUETE, yCentralizado,
-                LARGURA_RAQUETE,ALTURA_RAQUETE, VELOCIDADE_RAQUETE, ALTURA
+                LARGURA_RAQUETE,ALTURA_RAQUETE, dificuldade.getVelocidadeComputador(), ALTURA
         );
+
+        controleComputador = new ControleComputador(dificuldade.getTolerancia());
 
         bola = new Bola(
                 (LARGURA - DIAMETRO_BOLA) / 2, (ALTURA - DIAMETRO_BOLA) / 2,
