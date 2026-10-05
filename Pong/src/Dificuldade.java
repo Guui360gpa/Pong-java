@@ -1,6 +1,6 @@
 public enum Dificuldade {
 
-    FACIL("Facil",4,3, 2, 30),
+    FACIL("Facil",4,4, 3, 10),
     DIFICIL("Difícil",10,6, 5, 10);
 
     private final String rotulo;
