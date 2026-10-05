@@ -39,6 +39,9 @@ public class CampoJogo extends JPanel {
 
     private static final int INTERVALO_MS = 16;
 
+    private static final int PAUSA_SAQUE_MS = 800;
+    private static final int TICKS_PAUSA_SAQUE = PAUSA_SAQUE_MS / INTERVALO_MS;
+
     // Pontos necessários para vencer a partida
     private static final int META_PONTOS = 10;
 
@@ -55,6 +58,8 @@ public class CampoJogo extends JPanel {
 
     // Estado da partida: false depois que alguém vence, até começar outra
     private boolean partidaEmAndamento = true;
+
+    private int ticksAteSaque = 0;
 
     private boolean subindo = false;
     private boolean descendo = false;
@@ -83,7 +88,7 @@ public class CampoJogo extends JPanel {
         // x e y são o canto superior esquerdo, então o centro exige descontar o diâmetro
         bola = new Bola(
                 (LARGURA - DIAMETRO_BOLA) / 2, (ALTURA - DIAMETRO_BOLA) / 2,
-                DIAMETRO_BOLA, VELOCIDADE_BOLA_X, VELOCIDADE_BOLA_Y);
+                DIAMETRO_BOLA, dificuldade.getVelocidadeBolaX(), dificuldade.getVelocidadeBolaY());
 
         configurarTeclado();
         configurarPerdaDeFoco();
@@ -155,13 +160,18 @@ public class CampoJogo extends JPanel {
         // 2) Computador
         controleComputador.atualizar(raqueteComputador, bola);
 
-        // 3) Bola
-        bola.mover();
+        // 3) Bola: durante a pausa de saque ela fica parada no centro,
+        //    enquanto as raquetes continuam respondendo
+        if (ticksAteSaque > 0) {
+            ticksAteSaque--;
+        } else {
+            bola.mover();
 
-        // 4) Colisões (sempre DEPOIS de mover)
-        tratarLimitesVerticais();
-        tratarColisoesComRaquetes();
-        tratarPontuacao();
+            // 4) Colisões e pontos (sempre DEPOIS de mover)
+            tratarLimitesVerticais();
+            tratarColisoesComRaquetes();
+            tratarPontuacao();
+        }
 
         // 5) Pede o redesenho (o desenho em si acontece em paintComponent)
         repaint();
@@ -264,6 +274,7 @@ public class CampoJogo extends JPanel {
     /** Novo saque: horizontal em direção a quem perdeu o ponto; vertical sorteada. */
     private void reiniciarBola(boolean paraDireita) {
         bola.reiniciar(paraDireita, sorteio.nextBoolean());
+        ticksAteSaque = TICKS_PAUSA_SAQUE;
     }
 
     // ---------- Desenho ----------
