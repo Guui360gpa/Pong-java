@@ -83,7 +83,7 @@ public class CampoJogo extends JPanel {
         // x e y são o canto superior esquerdo, então o centro exige descontar o diâmetro
         bola = new Bola(
                 (LARGURA - DIAMETRO_BOLA) / 2, (ALTURA - DIAMETRO_BOLA) / 2,
-                DIAMETRO_BOLA, VELOCIDADE_BOLA_X, VELOCIDADE_BOLA_Y);
+                DIAMETRO_BOLA, dificuldade.getVelocidadeBolaX(), dificuldade.getVelocidadeBolaY());
 
         configurarTeclado();
         configurarPerdaDeFoco();
